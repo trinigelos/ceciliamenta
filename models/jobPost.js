@@ -22,17 +22,17 @@ const jobPostSchema = new mongoose.Schema({
   deletedAt: { type: Date, default: null },
 });
 
-
-jobPostSchema.index({ title: 'text', company: 'text', location: 'text', description: 'text' }, {
-  weights: {
+jobPostSchema.index(
+  { title: "text", company: "text", location: "text", description: "text" },
+  {
+    weights: {
       title: 10,
       company: 5,
       location: 5,
-  },
-  default_language: 'spanish'  // This setting avoids stemming and stop words filtering in your text search.
-});
-
-
+    },
+    default_language: "spanish", // This setting avoids stemming and stop words filtering in your text search.
+  }
+);
 
 const JobPost = mongoose.model("Job Post", jobPostSchema);
 

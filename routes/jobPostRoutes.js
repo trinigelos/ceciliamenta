@@ -34,18 +34,22 @@ router.get("/jobposts", async (req, res) => {
 
   // filter object based on the parameters passed:
   let filter = { isDeleted: false };
-  if (searchTerm || location) {
-    filter.$text = {
-      $search: searchTerm + " " + location, // Combining searchTerm and location
-      $caseSensitive: false,
-      $diacriticSensitive: false,
-    };
+  if (searchTerm) {
+    filter.$or = [
+      { title: { $regex: searchTerm, $options: "i" } },
+      { company: { $regex: searchTerm, $options: "i" } },
+    ];
   }
 
+  if (location) {
+    if (!filter.$or) {
+      filter.location = { $regex: location, $options: "i" };
+    } else {
+      filter.$or.push({ location: { $regex: location, $options: "i" } });
+    }
+  }
   try {
-    const jobPosts = await JobPost.find(filter, {
-      score: { $meta: "textScore" },
-    }).sort({ score: { $meta: "textScore" }, createdAt: -1 });
+    const jobPosts = await JobPost.find(filter);
     res.json(jobPosts);
   } catch (error) {
     res.status(500).json({ message: error.message });
