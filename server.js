@@ -11,12 +11,13 @@ const jobPostRoutes = require("./routes/jobPostRoutes");
 
 const cors = require("cors");
 
-// Use CORS middleware
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-  })
-);
+// set origin Options to fetch from backend
+const corsOptions = {
+  origin: ["http://localhost:3000", "http://localhost:3001"],
+};
+
+// Use CORS middleware with updated options
+app.use(cors(corsOptions));
 
 // Require the database connection
 require("./database");
@@ -37,10 +38,7 @@ app.use(authRoutes);
 // Use job post routes
 app.use(jobPostRoutes);
 
-// // Use the verify Token route
-// app.use(verifyTokenRoute);
-
-// //use categories routes
+////use categories routes
 // app.use(categoryRoutes);
 
 app.get("/", (req, res) => {

@@ -5,6 +5,14 @@ const router = express.Router();
 const JobPost = require("../models/jobPost");
 const authMiddleware = require("./authMiddleware");
 
+function normalizeText(text) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[\W_]+/g, "");
+}
+
 // Create a new job post
 router.post("/jobpost", authMiddleware, async (req, res) => {
   try {
@@ -12,6 +20,7 @@ router.post("/jobpost", authMiddleware, async (req, res) => {
       ...req.body,
       postedBy: req.userData.userId,
     });
+
     const savedJobPost = await jobPost.save();
     res.status(201).json(savedJobPost);
   } catch (error) {
@@ -25,33 +34,19 @@ router.get("/jobposts", async (req, res) => {
 
   // filter object based on the parameters passed:
   let filter = { isDeleted: false };
-  if (searchTerm) {
-    filter.$or = [
-      { title: { $regex: searchTerm, $options: "i" } },
-      { company: { $regex: searchTerm, $options: "i" } },
-    ];
+  if (searchTerm || location) {
+    filter.$text = {
+      $search: searchTerm + " " + location, // Combining searchTerm and location
+      $caseSensitive: false,
+      $diacriticSensitive: false,
+    };
   }
 
-  if (location) {
-    // If there's already an $or condition (from searchTerm), we need to make sure location is added outside of $or
-    if (!filter.$or) {
-      filter.location = { $regex: location, $options: "i" };
-    } else {
-      // If both searchTerm and location are provided, we add location as an additional condition
-      // jobs matching the searchTerm OR location
-      filter.$or.push({ location: { $regex: location, $options: "i" } });
-    }
-  }
   try {
-    // find all jobs where isDeleted is not true
-    console.log("Filter used for querying:", filter);
-
-    const jobPosts = await JobPost.find(filter);
-      //.sort({ createdAt: -1 });
-    // const filteredJobPosts = jobPosts.filter(({ isDeleted }) => !isDeleted);
+    const jobPosts = await JobPost.find(filter, {
+      score: { $meta: "textScore" },
+    }).sort({ score: { $meta: "textScore" }, createdAt: -1 });
     res.json(jobPosts);
-    // console.log(filteredJobPosts);
-    console.log(jobPosts);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
